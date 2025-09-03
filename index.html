@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Firebase Remote Text - Main Page</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -189,7 +189,7 @@
             const remoteUrl = `${window.location.origin}/remote.html?session=${sessionId}`;
             const qrContainer = document.getElementById('qr-code');
             
-            QRCode.toCanvas(qrContainer, remoteUrl, {
+          /*  QRCode.toCanvas(qrContainer, remoteUrl, {
                 width: 200,
                 height: 200,
                 colorDark: '#667eea',
@@ -203,6 +203,16 @@
                     document.querySelector('.status.waiting').textContent = '📱 Scan QR code to connect';
                 }
             });
+*/
+            
+            new QRCode(document.getElementById("qr-code"), {
+    text: remoteUrl,
+    width: 200,
+    height: 200,
+    colorDark: "#667eea",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+});
         }
 
         // Listen for remote connection
@@ -241,7 +251,8 @@
 
         // Initialize with delay to ensure libraries load
         setTimeout(() => {
-            generateQRCode();
+           generateQRCode();
+
         }, 500);
         
         // Cleanup session after 1 hour (optional)
