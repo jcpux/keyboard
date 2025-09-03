@@ -3,183 +3,293 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Remote Control</title>
+    <title>Remote Text Input</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            background: #0f0f0f;
+            color: #ffffff;
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .main-container {
+            display: flex;
+            width: 100vw;
+            min-height: 100vh;
+        }
+        
+        .left-column {
+            width: 320px;
+            background: #1a1a1a;
+            border-right: 1px solid #333;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            gap: 20px;
         }
         
-        .container {
-            background: white;
+        .right-column {
+            flex: 1;
+            background: #0f0f0f;
             padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
-            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
         }
         
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 2em;
-            text-align: center;
-            background: linear-gradient(45deg, #74b9ff, #0984e3);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        #text-input {
+        #main-text-input {
             width: 100%;
-            padding: 15px;
-            border: 2px solid #74b9ff;
-            border-radius: 10px;
+            padding: 25px;
+            border: 2px solid #333;
+            border-radius: 12px;
             font-size: 18px;
-            min-height: 120px;
-            resize: vertical;
-            box-sizing: border-box;
+            font-family: 'Segoe UI', monospace;
+            resize: none;
+            min-height: 200px;
+            background: #1a1a1a;
+            color: #ffffff;
             transition: all 0.3s ease;
+            line-height: 1.6;
         }
         
-        #text-input:focus {
+        #main-text-input:focus {
             outline: none;
-            border-color: #0984e3;
-            box-shadow: 0 0 0 3px rgba(116, 185, 255, 0.2);
-            transform: scale(1.02);
+            border-color: #4a9eff;
+            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+            background: #202020;
         }
         
-        #send-button {
+        #main-text-input::placeholder {
+            color: #666;
+        }
+        
+        .mobile-toggle-btn {
             width: 100%;
             padding: 15px;
-            margin-top: 20px;
-            background: linear-gradient(45deg, #74b9ff, #0984e3);
+            background: linear-gradient(135deg, #4a9eff 0%, #0066cc 100%);
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .mobile-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(74, 158, 255, 0.3);
+        }
+        
+        .keyboard-container {
             transition: all 0.3s ease;
         }
         
-        #send-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(116, 185, 255, 0.3);
+        .keyboard-container.hidden {
+            display: none;
         }
         
-        #send-button:active {
-            transform: translateY(0);
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            width: 100%;
         }
         
-        #send-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
+        .key {
+            aspect-ratio: 1;
+            border: 1px solid #444;
+            background: #2a2a2a;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            min-height: 40px;
+        }
+        
+        .key:hover {
+            background: #4a9eff;
+            border-color: #4a9eff;
+            transform: scale(1.05);
+        }
+        
+        .key:active {
+            transform: scale(0.95);
+        }
+        
+        .key.space {
+            grid-column: span 3;
+            aspect-ratio: 3/1;
+        }
+        
+        .key.backspace {
+            grid-column: span 3;
+            aspect-ratio: 3/1;
+            background: #ff4757;
+            border-color: #ff4757;
+        }
+        
+        .key.backspace:hover {
+            background: #ff3742;
+        }
+        
+        .qr-section {
+            width: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .qr-section.visible {
+            display: flex;
+        }
+        
+        .qr-container {
+            background: #1a1a1a;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            text-align: center;
+            width: 100%;
+        }
+        
+        #qr-code {
+            margin: 15px 0;
+            display: flex;
+            justify-content: center;
+        }
+        
+        #qr-code canvas {
+            border-radius: 8px;
+        }
+        
+        .qr-instructions {
+            color: #ccc;
+            margin-top: 15px;
+        }
+        
+        .qr-instructions h3 {
+            color: #4a9eff;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .qr-instructions p {
+            color: #999;
+            font-size: 13px;
+            line-height: 1.4;
         }
         
         .status {
-            text-align: center;
             padding: 12px 20px;
-            border-radius: 25px;
-            margin: 20px 0;
-            font-weight: bold;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: 600;
+            font-size: 14px;
             transition: all 0.3s ease;
         }
         
-        .status.connecting {
-            background: #fff3cd;
-            color: #856404;
-            border: 2px solid #ffeaa7;
-        }
-        
         .status.connected {
-            background: #d4edda;
-            color: #155724;
-            border: 2px solid #00b894;
+            background: rgba(39, 174, 96, 0.2);
+            color: #2ecc71;
+            border: 1px solid #27ae60;
         }
         
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 2px solid #f5c6cb;
+        .connection-status-container {
+            margin-top: auto;
+            padding-top: 20px;
         }
         
-        .firebase-badge {
-            background: linear-gradient(45deg, #ff6b35, #f7931e);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 15px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            display: inline-block;
-        }
-        
-        .loading {
-            display: inline-block;
-            width: 15px;
-            height: 15px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #74b9ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .instructions {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            border-left: 4px solid #74b9ff;
-            font-size: 14px;
-            text-align: left;
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .left-column {
+                width: 100%;
+                min-height: auto;
+                border-right: none;
+                border-bottom: 1px solid #333;
+                order: 2;
+            }
+            
+            .right-column {
+                order: 1;
+                padding: 20px;
+            }
+            
+            #main-text-input {
+                min-height: 150px;
+                font-size: 16px;
+                padding: 20px;
+            }
+            
+            .keyboard {
+                gap: 4px;
+            }
+            
+            .key {
+                min-height: 35px;
+                font-size: 13px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="firebase-badge">🔥 FIREBASE</div>
-        <h1>🎮 Remote Control</h1>
-        
-        <div id="status" class="status connecting">
-            <span class="loading"></span>Connecting to session...
+    <div class="main-container">
+        <div class="left-column">
+            <button class="mobile-toggle-btn" id="mobile-toggle">
+                📱 Type with Mobile
+            </button>
+            
+            <div class="keyboard-container" id="keyboard-container">
+                <div class="keyboard" id="keyboard">
+                    <!-- Keyboard keys will be generated by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="qr-section" id="qr-section">
+                <div class="qr-container">
+                    <div id="qr-code"></div>
+                    <div class="qr-instructions">
+                        <h3>📱 Scan with your phone</h3>
+                        <p>Use your phone's camera to scan this QR code, then type using your phone's keyboard</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="connection-status-container">
+                <div id="connection-status"></div>
+            </div>
         </div>
         
-        <textarea 
-            id="text-input" 
-            placeholder="Start typing... Your text will appear on the main screen in real-time!"
-            disabled
-        ></textarea>
-        
-        <button id="send-button" disabled>🚀 Send Alert</button>
-        
-        <div class="instructions">
-            <strong>📝 How it works:</strong><br>
-            • Type in the text area above<br>
-            • Your keystrokes appear live on the main screen<br>
-            • Press "Send Alert" to trigger an alert on the main screen
+        <div class="right-column">
+            <textarea id="main-text-input" placeholder="Start typing here..." autofocus></textarea>
         </div>
     </div>
 
     <script type="module">
         // Import Firebase functions
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, push, serverTimestamp, update } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
         
         // Your Firebase configuration
         const firebaseConfig = {
@@ -196,105 +306,192 @@
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
         
-        const textInput = document.getElementById('text-input');
-        const sendButton = document.getElementById('send-button');
-        const statusDiv = document.getElementById('status');
+        // Generate unique session ID
+        const sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+        const sessionRef = ref(database, 'sessions/' + sessionId);
         
-        // Get session ID from URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionId = urlParams.get('session');
+        // UI Elements
+        const mainTextInput = document.getElementById('main-text-input');
+        const mobileToggleBtn = document.getElementById('mobile-toggle');
+        const keyboardContainer = document.getElementById('keyboard-container');
+        const qrSection = document.getElementById('qr-section');
+        const connectionStatus = document.getElementById('connection-status');
         
-        if (!sessionId) {
-            showStatus('error', '❌ No session ID provided');
-        } else {
-            connectToSession();
-        }
-
-        function connectToSession() {
-            try {
-                const sessionRef = ref(database, `sessions/${sessionId}`);
+        let isQRMode = false;
+        
+        // Initialize session
+        set(sessionRef, {
+            created: serverTimestamp(),
+            connected: false,
+            text: ''
+        });
+        
+        // Generate virtual keyboard with ABC order
+        function generateKeyboard() {
+            const keyboard = document.getElementById('keyboard');
+            // ABC order: A-Z, then 0-9
+            const keys = [
+                'A', 'B', 'C', 'D', 'E', 'F',
+                'G', 'H', 'I', 'J', 'K', 'L',
+                'M', 'N', 'O', 'P', 'Q', 'R',
+                'S', 'T', 'U', 'V', 'W', 'X',
+                'Y', 'Z', '0', '1', '2', '3',
+                '4', '5', '6', '7', '8', '9'
+            ];
+            
+            // Add letter and number keys
+            keys.forEach(key => {
+                const keyElement = document.createElement('button');
+                keyElement.className = 'key';
+                keyElement.textContent = key;
+                keyElement.addEventListener('click', () => insertText(key));
+                keyboard.appendChild(keyElement);
+            });
+            
+            // Add space key (3 columns wide)
+            const spaceKey = document.createElement('button');
+            spaceKey.className = 'key space';
+            spaceKey.textContent = 'SPACE';
+            spaceKey.addEventListener('click', () => insertText(' '));
+            keyboard.appendChild(spaceKey);
+            
+            // Add backspace key (3 columns wide)
+            const backspaceKey = document.createElement('button');
+            backspaceKey.className = 'key backspace';
+            backspaceKey.textContent = '⌫ DEL';
+            backspaceKey.addEventListener('click', () => {
+                const start = mainTextInput.selectionStart;
+                const end = mainTextInput.selectionEnd;
+                const currentText = mainTextInput.value;
                 
-                // Check if session exists and connect
-                onValue(sessionRef, (snapshot) => {
-                    if (snapshot.exists()) {
-                        showStatus('connected', '✅ Connected to main screen');
-                        textInput.disabled = false;
-                        sendButton.disabled = false;
-                        textInput.focus();
-                        
-                        // Mark as connected
-                        update(ref(database, `sessions/${sessionId}`), {
-                            connected: true
-                        });
-                        
-                        // Load existing text
-                        const data = snapshot.val();
-                        if (data.text) {
-                            textInput.value = data.text;
-                        }
-                    } else {
-                        showStatus('error', '❌ Session not found');
-                    }
-                }, { onlyOnce: true });
-
-                // Text input with debouncing
-                let debounceTimer;
-                textInput.addEventListener('input', (e) => {
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(() => {
-                        update(ref(database, `sessions/${sessionId}`), {
-                            text: e.target.value
-                        });
-                    }, 100);
+                if (start !== end) {
+                    // Delete selected text
+                    mainTextInput.value = currentText.slice(0, start) + currentText.slice(end);
+                    mainTextInput.selectionStart = mainTextInput.selectionEnd = start;
+                } else if (start > 0) {
+                    // Delete character before cursor
+                    mainTextInput.value = currentText.slice(0, start - 1) + currentText.slice(start);
+                    mainTextInput.selectionStart = mainTextInput.selectionEnd = start - 1;
+                }
+                
+                mainTextInput.focus();
+                updateFirebase();
+            });
+            keyboard.appendChild(backspaceKey);
+        }
+        
+        // Insert text at cursor position
+        function insertText(text) {
+            const start = mainTextInput.selectionStart;
+            const end = mainTextInput.selectionEnd;
+            const currentText = mainTextInput.value;
+            
+            mainTextInput.value = currentText.slice(0, start) + text + currentText.slice(end);
+            mainTextInput.selectionStart = mainTextInput.selectionEnd = start + text.length;
+            mainTextInput.focus();
+            updateFirebase();
+        }
+        
+        // Update Firebase with current text
+        function updateFirebase() {
+            set(ref(database, `sessions/${sessionId}/text`), mainTextInput.value);
+        }
+        
+        // Toggle between keyboard and QR mode
+        mobileToggleBtn.addEventListener('click', () => {
+            if (!isQRMode) {
+                // Switch to QR mode
+                isQRMode = true;
+                mobileToggleBtn.textContent = '⌨️ Show Keyboard';
+                keyboardContainer.classList.add('hidden');
+                qrSection.classList.add('visible');
+                generateQRCode();
+            } else {
+                // Switch to keyboard mode
+                isQRMode = false;
+                mobileToggleBtn.textContent = '📱 Type with Mobile';
+                keyboardContainer.classList.remove('hidden');
+                qrSection.classList.remove('visible');
+            }
+        });
+        
+        // Generate QR code using QRCodeJS
+        function generateQRCode() {
+            const remoteUrl = `${window.location.origin}/remote.html?session=${sessionId}`;
+            const qrContainer = document.getElementById('qr-code');
+            
+            // Clear any existing QR code
+            qrContainer.innerHTML = '';
+            
+            try {
+                new QRCode(qrContainer, {
+                    text: remoteUrl,
+                    width: 180,
+                    height: 180,
+                    colorDark: "#ffffff",
+                    colorLight: "#1a1a1a",
+                    correctLevel: QRCode.CorrectLevel.H
                 });
-
-                // Send button handler
-                sendButton.addEventListener('click', () => {
-                    const text = textInput.value.trim();
-                    
-                    // Create alert with timestamp
-                    const alertRef = push(ref(database, `sessions/${sessionId}/alerts`));
-                    set(alertRef, {
-                        text: text,
-                        timestamp: serverTimestamp(),
-                        shown: false
-                    });
-                    
-                    // Visual feedback
-                    sendButton.textContent = '✅ Sent!';
-                    sendButton.style.background = 'linear-gradient(45deg, #00b894, #00cec9)';
-                    setTimeout(() => {
-                        sendButton.textContent = '🚀 Send Alert';
-                        sendButton.style.background = 'linear-gradient(45deg, #74b9ff, #0984e3)';
-                    }, 1500);
-                });
-
-                // Handle page visibility for mobile
-                document.addEventListener('visibilitychange', () => {
-                    if (!document.hidden && textInput && !textInput.disabled) {
-                        textInput.focus();
-                    }
-                });
-
-                // Disconnect on page unload
-                window.addEventListener('beforeunload', () => {
-                    update(ref(database, `sessions/${sessionId}`), {
-                        connected: false
-                    });
-                });
-
             } catch (error) {
-                showStatus('error', '❌ Failed to initialize');
-                console.error('Firebase initialization error:', error);
+                console.error('QR Code generation failed:', error);
+                qrContainer.innerHTML = `
+                    <div style="padding: 15px; background: #2a2a2a; border-radius: 8px; margin: 10px 0;">
+                        <p><strong>📱 Open this URL on your phone:</strong></p>
+                        <a href="${remoteUrl}" target="_blank" style="color: #4a9eff; word-break: break-all; font-size: 12px;">${remoteUrl}</a>
+                    </div>
+                `;
             }
         }
-
-        function showStatus(type, message) {
-            statusDiv.className = `status ${type}`;
-            statusDiv.innerHTML = type === 'connecting' ? 
-                `<span class="loading"></span>${message}` : 
-                message;
-        }
+        
+        // Listen for remote connection
+        onValue(ref(database, `sessions/${sessionId}/connected`), (snapshot) => {
+            if (snapshot.val() === true) {
+                connectionStatus.innerHTML = '<div class="status connected">✅ Mobile connected</div>';
+            } else {
+                connectionStatus.innerHTML = '';
+            }
+        });
+        
+        // Listen for text updates from remote
+        onValue(ref(database, `sessions/${sessionId}/text`), (snapshot) => {
+            const text = snapshot.val() || '';
+            if (mainTextInput.value !== text) {
+                const cursorPosition = mainTextInput.selectionStart;
+                mainTextInput.value = text;
+                // Try to maintain cursor position
+                mainTextInput.selectionStart = mainTextInput.selectionEnd = Math.min(cursorPosition, text.length);
+            }
+        });
+        
+        // Listen for alert triggers
+        onValue(ref(database, `sessions/${sessionId}/alerts`), (snapshot) => {
+            const alerts = snapshot.val();
+            if (alerts) {
+                const alertKeys = Object.keys(alerts);
+                const latestAlertKey = alertKeys[alertKeys.length - 1];
+                const latestAlert = alerts[latestAlertKey];
+                
+                if (latestAlert && !latestAlert.shown) {
+                    alert(latestAlert.text || 'Button pressed on mobile device!');
+                    set(ref(database, `sessions/${sessionId}/alerts/${latestAlertKey}/shown`), true);
+                }
+            }
+        });
+        
+        // Update Firebase when typing in main text input
+        let debounceTimer;
+        mainTextInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(updateFirebase, 100);
+        });
+        
+        // Initialize keyboard
+        generateKeyboard();
+        
+        // Cleanup session after 1 hour
+        setTimeout(() => {
+            set(sessionRef, null);
+        }, 60 * 60 * 1000);
     </script>
 </body>
 </html>
