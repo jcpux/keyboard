@@ -239,8 +239,10 @@
             }
         });
 
-        // Initialize
-        generateQRCode();
+        // Initialize with delay to ensure libraries load
+        setTimeout(() => {
+            generateQRCode();
+        }, 500);
         
         // Cleanup session after 1 hour (optional)
         setTimeout(() => {
