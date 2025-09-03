@@ -4,68 +4,203 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Firebase Remote Text - Main Page</title>
-   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
-        .container {
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
             background: white;
-            padding: 40px;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            text-align: center;
-            min-width: 400px;
-            transition: all 0.3s ease;
+            overflow: hidden;
+            min-height: calc(100vh - 40px);
+        }
+        
+        .text-section {
+            padding: 30px;
+            border-bottom: 2px solid #f0f0f0;
         }
         
         h1 {
             color: #333;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             font-size: 2.5em;
             background: linear-gradient(45deg, #667eea, #764ba2);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            text-align: center;
         }
         
-        #qr-container {
-            margin: 30px 0;
+        #main-text-input {
+            width: 100%;
             padding: 20px;
-            background: #f8f9fa;
+            border: 3px solid #667eea;
             border-radius: 15px;
-            border: 3px dashed #667eea;
+            font-size: 24px;
+            font-family: 'Segoe UI', monospace;
+            resize: none;
+            min-height: 120px;
+            background: #f8f9fa;
             transition: all 0.3s ease;
         }
         
-        #text-container {
-            display: none;
-            margin: 30px 0;
+        #main-text-input:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 4px rgba(118, 75, 162, 0.2);
+            transform: scale(1.02);
         }
         
-        #received-text {
+        .control-section {
+            display: flex;
+            height: 600px;
+        }
+        
+        .keyboard-column {
+            flex: 1;
+            padding: 30px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        
+        .mobile-toggle-btn {
             width: 100%;
             padding: 15px;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .mobile-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 184, 148, 0.3);
+        }
+        
+        .keyboard-container {
+            transition: all 0.3s ease;
+        }
+        
+        .keyboard-container.hidden {
+            display: none;
+        }
+        
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .key {
+            aspect-ratio: 1;
             border: 2px solid #667eea;
-            border-radius: 10px;
-            font-size: 16px;
-            min-height: 100px;
-            resize: vertical;
-            background: #f8f9fa;
-            box-sizing: border-box;
+            background: white;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+        }
+        
+        .key:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .key:active {
+            transform: scale(0.95);
+        }
+        
+        .key.space {
+            grid-column: span 2;
+        }
+        
+        .key.backspace {
+            background: #ff6b6b;
+            color: white;
+            border-color: #ff6b6b;
+        }
+        
+        .key.backspace:hover {
+            background: #ff5252;
+        }
+        
+        .qr-section {
+            flex: 1;
+            padding: 30px;
+            background: #e3f2fd;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .qr-section.visible {
+            display: flex;
+        }
+        
+        .qr-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 300px;
+        }
+        
+        #qr-code {
+            margin: 20px 0;
+        }
+        
+        .qr-instructions {
+            color: #333;
+            margin-top: 15px;
+        }
+        
+        .qr-instructions h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .qr-instructions p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
         }
         
         .status {
+            text-align: center;
             padding: 12px 24px;
             border-radius: 25px;
             margin: 20px 0;
@@ -85,30 +220,16 @@
             border: 2px solid #00b894;
         }
         
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 2px solid #f5c6cb;
-        }
-        
-        .instructions {
-            background: #e3f2fd;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            border-left: 4px solid #667eea;
-            text-align: left;
-        }
-        
         .firebase-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
             background: linear-gradient(45deg, #ff6b35, #f7931e);
             color: white;
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: bold;
-            margin-bottom: 20px;
-            display: inline-block;
         }
         
         .loading {
@@ -125,31 +246,61 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        @media (max-width: 768px) {
+            .control-section {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .keyboard-column,
+            .qr-section {
+                flex: none;
+            }
+            
+            .keyboard {
+                max-width: 100%;
+            }
+            
+            .key {
+                min-height: 45px;
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="main-container">
         <div class="firebase-badge">🔥 Firebase Realtime</div>
-        <h1>📱 Remote Text Input</h1>
         
-        <div id="qr-container">
-            <div class="status waiting">
-                <span class="loading"></span> Initializing session...
-            </div>
-            <div id="qr-code"></div>
-            <div class="instructions">
-                <strong>📱 How to use:</strong><br>
-                • Scan the QR code with your phone<br>
-                • Start typing on your phone<br>
-                • Watch the text appear here in real-time!<br>
-                • Press the button on your phone to trigger alerts
-            </div>
+        <div class="text-section">
+            <h1>📱 Remote Text Input</h1>
+            <textarea id="main-text-input" placeholder="Start typing here or use the keyboard below..." autofocus></textarea>
+            <div id="connection-status"></div>
         </div>
         
-        <div id="text-container">
-            <div class="status connected">✅ Remote device connected!</div>
-            <label for="received-text"><strong>📝 Live Text from Remote Device:</strong></label>
-            <textarea id="received-text" readonly placeholder="Waiting for input from remote device..."></textarea>
+        <div class="control-section">
+            <div class="keyboard-column">
+                <button class="mobile-toggle-btn" id="mobile-toggle">
+                    📱 Type with Mobile
+                </button>
+                
+                <div class="keyboard-container" id="keyboard-container">
+                    <div class="keyboard" id="keyboard">
+                        <!-- Keyboard keys will be generated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="qr-section" id="qr-section">
+                <div class="qr-container">
+                    <div id="qr-code"></div>
+                    <div class="qr-instructions">
+                        <h3>📱 Scan with your phone</h3>
+                        <p>Use your phone's camera to scan this QR code, then type using your phone's keyboard</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -177,6 +328,15 @@
         const sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
         const sessionRef = ref(database, 'sessions/' + sessionId);
         
+        // UI Elements
+        const mainTextInput = document.getElementById('main-text-input');
+        const mobileToggleBtn = document.getElementById('mobile-toggle');
+        const keyboardContainer = document.getElementById('keyboard-container');
+        const qrSection = document.getElementById('qr-section');
+        const connectionStatus = document.getElementById('connection-status');
+        
+        let isQRMode = false;
+        
         // Initialize session
         set(sessionRef, {
             created: serverTimestamp(),
@@ -184,78 +344,153 @@
             text: ''
         });
         
-        // Generate QR code
+        // Generate virtual keyboard with ABC order
+        function generateKeyboard() {
+            const keyboard = document.getElementById('keyboard');
+            // ABC order: A-Z, then 0-9
+            const keys = [
+                'A', 'B', 'C', 'D', 'E', 'F',
+                'G', 'H', 'I', 'J', 'K', 'L',
+                'M', 'N', 'O', 'P', 'Q', 'R',
+                'S', 'T', 'U', 'V', 'W', 'X',
+                'Y', 'Z', '0', '1', '2', '3',
+                '4', '5', '6', '7', '8', '9'
+            ];
+            
+            // Add letter and number keys
+            keys.forEach(key => {
+                const keyElement = document.createElement('button');
+                keyElement.className = 'key';
+                keyElement.textContent = key;
+                keyElement.addEventListener('click', () => insertText(key));
+                keyboard.appendChild(keyElement);
+            });
+            
+            // Add space key
+            const spaceKey = document.createElement('button');
+            spaceKey.className = 'key space';
+            spaceKey.textContent = 'SPACE';
+            spaceKey.addEventListener('click', () => insertText(' '));
+            keyboard.appendChild(spaceKey);
+            
+            // Add backspace key
+            const backspaceKey = document.createElement('button');
+            backspaceKey.className = 'key backspace';
+            backspaceKey.textContent = '⌫';
+            backspaceKey.addEventListener('click', () => {
+                const currentText = mainTextInput.value;
+                mainTextInput.value = currentText.slice(0, -1);
+                updateFirebase();
+            });
+            keyboard.appendChild(backspaceKey);
+        }
+        
+        // Insert text at cursor position
+        function insertText(text) {
+            const start = mainTextInput.selectionStart;
+            const end = mainTextInput.selectionEnd;
+            const currentText = mainTextInput.value;
+            
+            mainTextInput.value = currentText.slice(0, start) + text + currentText.slice(end);
+            mainTextInput.selectionStart = mainTextInput.selectionEnd = start + text.length;
+            mainTextInput.focus();
+            updateFirebase();
+        }
+        
+        // Update Firebase with current text
+        function updateFirebase() {
+            set(ref(database, `sessions/${sessionId}/text`), mainTextInput.value);
+        }
+        
+        // Toggle between keyboard and QR mode
+        mobileToggleBtn.addEventListener('click', () => {
+            if (!isQRMode) {
+                // Switch to QR mode
+                isQRMode = true;
+                mobileToggleBtn.textContent = '⌨️ Show Keyboard';
+                keyboardContainer.classList.add('hidden');
+                qrSection.classList.add('visible');
+                generateQRCode();
+            } else {
+                // Switch to keyboard mode
+                isQRMode = false;
+                mobileToggleBtn.textContent = '📱 Type with Mobile';
+                keyboardContainer.classList.remove('hidden');
+                qrSection.classList.remove('visible');
+            }
+        });
+        
+        // Generate QR code using QRCodeJS
         function generateQRCode() {
             const remoteUrl = `${window.location.origin}/remote.html?session=${sessionId}`;
             const qrContainer = document.getElementById('qr-code');
             
-          /*  QRCode.toCanvas(qrContainer, remoteUrl, {
-                width: 200,
-                height: 200,
-                colorDark: '#667eea',
-                colorLight: '#ffffff',
-                margin: 2
-            }, (error) => {
-                if (error) {
-                    console.error('QR Code generation failed:', error);
-                    qrContainer.innerHTML = `<p>URL: <a href="${remoteUrl}" target="_blank">${remoteUrl}</a></p>`;
-                } else {
-                    document.querySelector('.status.waiting').textContent = '📱 Scan QR code to connect';
-                }
-            });
-*/
+            // Clear any existing QR code
+            qrContainer.innerHTML = '';
             
-            new QRCode(document.getElementById("qr-code"), {
-    text: remoteUrl,
-    width: 200,
-    height: 200,
-    colorDark: "#667eea",
-    colorLight: "#ffffff",
-    correctLevel: QRCode.CorrectLevel.H
-});
+            try {
+                new QRCode(qrContainer, {
+                    text: remoteUrl,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#667eea",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            } catch (error) {
+                console.error('QR Code generation failed:', error);
+                qrContainer.innerHTML = `
+                    <div style="padding: 20px; background: #e3f2fd; border-radius: 10px; margin: 10px 0;">
+                        <p><strong>📱 Open this URL on your phone:</strong></p>
+                        <a href="${remoteUrl}" target="_blank" style="color: #0984e3; word-break: break-all; font-size: 14px;">${remoteUrl}</a>
+                    </div>
+                `;
+            }
         }
-
+        
         // Listen for remote connection
         onValue(ref(database, `sessions/${sessionId}/connected`), (snapshot) => {
             if (snapshot.val() === true) {
-                document.getElementById('qr-container').style.display = 'none';
-                document.getElementById('text-container').style.display = 'block';
-            } else if (snapshot.val() === false) {
-                document.getElementById('qr-container').style.display = 'block';
-                document.getElementById('text-container').style.display = 'none';
+                connectionStatus.innerHTML = '<div class="status connected">✅ Mobile device connected!</div>';
+            } else {
+                connectionStatus.innerHTML = '';
             }
         });
-
-        // Listen for text updates
+        
+        // Listen for text updates from remote
         onValue(ref(database, `sessions/${sessionId}/text`), (snapshot) => {
             const text = snapshot.val() || '';
-            document.getElementById('received-text').value = text;
+            if (mainTextInput.value !== text) {
+                mainTextInput.value = text;
+            }
         });
-
+        
         // Listen for alert triggers
         onValue(ref(database, `sessions/${sessionId}/alerts`), (snapshot) => {
             const alerts = snapshot.val();
             if (alerts) {
-                // Get the latest alert
                 const alertKeys = Object.keys(alerts);
                 const latestAlertKey = alertKeys[alertKeys.length - 1];
                 const latestAlert = alerts[latestAlertKey];
                 
                 if (latestAlert && !latestAlert.shown) {
-                    alert(latestAlert.text || 'Button pressed on remote device!');
-                    // Mark alert as shown
+                    alert(latestAlert.text || 'Button pressed on mobile device!');
                     set(ref(database, `sessions/${sessionId}/alerts/${latestAlertKey}/shown`), true);
                 }
             }
         });
-
-        // Initialize with delay to ensure libraries load
-        setTimeout(() => {
-           generateQRCode();
-
-        }, 500);
         
-        // Cleanup session after 1 hour (optional)
+        // Update Firebase when typing in main text input
+        let debounceTimer;
+        mainTextInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(updateFirebase, 100);
+        });
+        
+        // Initialize keyboard
+        generateKeyboard();
+        
+        // Cleanup session after 1 hour
         setTimeout(() => {
             set(sessionRef, null);
         }, 60 * 60 * 1000);
