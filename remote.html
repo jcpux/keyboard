@@ -4,101 +4,129 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Remote Text Control</title>
+ 
   <style>
+    /* Global Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+      background: #0f0f0f;
+      color: #ffffff;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding: 20px;
     }
 
+    /* Main Container */
     .container {
-      background: white;
-      padding: 20px;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      background: #1a1a1a;
+      padding: 25px;
+      border-radius: 16px;
+      border: 1px solid #333;
       width: 100%;
       max-width: 480px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
     }
 
+    /* Text Input */
     #text-input {
-      flex: 1;
-      padding: 12px 14px;
-      border: 2px solid #74b9ff;
-      border-radius: 10px;
-      font-size: 16px;
-      box-sizing: border-box;
-      transition: all 0.2s ease;
       width: 100%;
+      padding: 15px;
+      border: 2px solid #333;
+      border-radius: 12px;
+      font-size: 16px;
+      background: #202020;
+      color: #ffffff;
+      transition: all 0.3s ease;
+      line-height: 1.6;
     }
 
     #text-input:focus {
       outline: none;
-      border-color: #0984e3;
-      box-shadow: 0 0 0 3px rgba(116,185,255,0.25);
+      border-color: #4a9eff;
+      box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+      background: #222;
     }
 
+    #text-input::placeholder {
+      color: #666;
+    }
+
+    /* Control Buttons */
     .controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
     }
 
     #clear-button,
     #send-button {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 10px 14px;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 14px;
       border-radius: 10px;
       border: none;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
-      flex: 1;
-      justify-content: center;
+      transition: all 0.3s ease;
     }
 
     #clear-button {
-      background: #f1f2f6;
-      color: #2d3436;
+      background: #ff4757;
+      color: white;
+      border: 1px solid #ff4757;
     }
+
     #clear-button:hover {
-      background: #dfe4ea;
+      background: #ff3742;
+      transform: translateY(-2px);
     }
 
     #send-button {
-      background: linear-gradient(45deg, #74b9ff, #0984e3);
+      background: linear-gradient(135deg, #4a9eff 0%, #0066cc 100%);
       color: white;
     }
-    #send-button:hover {
+
+    #send-button:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 6px 14px rgba(116,185,255,0.3);
+      box-shadow: 0 8px 20px rgba(74, 158, 255, 0.2);
     }
+
     #send-button:disabled {
-      opacity: 0.6;
+      opacity: 0.5;
       cursor: not-allowed;
     }
 
+    /* Status Indicator */
     .status {
-      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 8px;
       font-weight: 600;
-      color: #2d3436;
+      font-size: 13px;
+      color: #999;
       align-self: flex-start;
-      margin-bottom: 4px;
-    }
-    .status.connected {
-      color: #00b894;
+      transition: all 0.3s ease;
     }
 
+    .status.connected {
+      background: rgba(39, 174, 96, 0.2);
+      color: #2ecc71;
+      border: 1px solid rgba(39, 174, 96, 0.5);
+    }
+
+    /* Suggestion Buttons */
     .suggestions {
       display: flex;
       flex-wrap: wrap;
@@ -106,17 +134,21 @@
     }
 
     .suggestion {
-      background: transparent;
-      border: 1px dashed #74b9ff;
-      padding: 6px 10px;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      padding: 8px 12px;
       border-radius: 8px;
       font-size: 14px;
-      color: #0984e3;
+      color: #eee;
       cursor: pointer;
       transition: all 0.2s ease;
     }
+
     .suggestion:hover {
-      background: #eaf4ff;
+      background: #4a9eff;
+      border-color: #4a9eff;
+      color: white;
+      transform: scale(1.05);
     }
   </style>
 </head>
