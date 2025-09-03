@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Remote Text Control</title>
- 
   <style>
     /* Global Styles */
     * {
@@ -155,14 +154,14 @@
 <body>
   <div class="container">
     <div id="status" class="status">connecting…</div>
-    <input 
-      type="text"
-      id="text-input" 
+    <textarea
+      id="text-input"
       placeholder="Start typing..."
+      rows="4"
       disabled
-    >
+    ></textarea>
     <div class="controls">
-      <button id="clear-button">❌ Clear Text</button>
+      <button id="clear-button">❌ Clear</button>
       <button id="send-button" disabled>🚀 Send Alert</button>
     </div>
     <div class="suggestions" id="suggestions"></div>
@@ -172,6 +171,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getDatabase, ref, set, onValue, push, serverTimestamp, update } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
+    // --- Firebase Configuration ---
     const firebaseConfig = {
       apiKey: "AIzaSyCuPQragYUj2Lf921ZbGpaAq9-yZrszEvQ",
       authDomain: "keyboard-de3d8.firebaseapp.com",
@@ -182,45 +182,52 @@
       appId: "1:1054359737500:web:0cb3972aa7ee5796cf8959"
     };
 
+    // --- Initialize Firebase ---
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
+    // --- DOM Elements ---
     const textInput = document.getElementById('text-input');
     const statusDiv = document.getElementById('status');
     const clearButton = document.getElementById('clear-button');
     const sendButton = document.getElementById('send-button');
     const suggestionsDiv = document.getElementById('suggestions');
 
+    // --- Session Handling ---
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session');
 
     if (!sessionId) {
-      setStatus('❌ no session id', false);
+      setStatus('❌ No Session ID Found', false);
     } else {
       connectToSession();
     }
 
+    // --- Core Functions ---
     function connectToSession() {
       try {
         const sessionRef = ref(database, `sessions/${sessionId}`);
 
+        // Initial connection and data fetch
         onValue(sessionRef, (snapshot) => {
           if (snapshot.exists()) {
-            setStatus('connected', true);
+            setStatus('✅ Connected', true);
             textInput.disabled = false;
             sendButton.disabled = false;
-            textInput.focus();
+            
+            // MODIFICATION: Delay focus slightly to ensure mobile keyboard triggers reliably
+            setTimeout(() => textInput.focus(), 200);
 
             const data = snapshot.val();
-            if (data.text) {
-              textInput.value = data.text;
+            if (data.text && textInput.value !== data.text) {
+                textInput.value = data.text;
             }
           } else {
-            setStatus('❌ session not found', false);
+            setStatus('❌ Session Not Found', false);
           }
         }, { onlyOnce: true });
 
-        // update Firebase text
+        // Debounced text update to Firebase
         let debounceTimer;
         textInput.addEventListener('input', (e) => {
           clearTimeout(debounceTimer);
@@ -228,17 +235,20 @@
             update(ref(database, `sessions/${sessionId}`), {
               text: e.target.value
             });
-          }, 100);
-
+          }, 150);
           generateSuggestions(e.target.value);
         });
 
+        // Clear button functionality
         clearButton.addEventListener('click', () => {
           textInput.value = '';
           update(ref(database, `sessions/${sessionId}`), { text: '' });
           suggestionsDiv.innerHTML = '';
+          // MODIFICATION: Return focus to the input to keep the keyboard open
+          textInput.focus();
         });
 
+        // Send alert functionality
         sendButton.addEventListener('click', () => {
           const text = textInput.value.trim();
           if (!text) return;
@@ -250,27 +260,24 @@
             shown: false
           });
 
-          // feedback
+          // Visual feedback for sending
           sendButton.textContent = '✅ Sent!';
-          sendButton.style.background = 'linear-gradient(45deg,#00b894,#00cec9)';
+          sendButton.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
           setTimeout(() => {
             sendButton.textContent = '🚀 Send Alert';
-            sendButton.style.background = 'linear-gradient(45deg,#74b9ff,#0984e3)';
+            sendButton.style.background = 'linear-gradient(135deg, #4a9eff 0%, #0066cc 100%)';
           }, 1500);
         });
 
-        window.addEventListener('beforeunload', () => {
-          update(ref(database, `sessions/${sessionId}`), { connected: false });
-        });
       } catch (err) {
-        setStatus('❌ failed to connect', false);
+        setStatus('❌ Connection Failed', false);
         console.error(err);
       }
     }
 
-    function setStatus(message, ok) {
+    function setStatus(message, isConnected) {
       statusDiv.textContent = message;
-      statusDiv.className = ok ? 'status connected' : 'status';
+      statusDiv.className = isConnected ? 'status connected' : 'status';
     }
 
     function generateSuggestions(text) {
@@ -280,9 +287,9 @@
       const variations = [
         text + '!',
         text + '?',
-        text + '…',
         text.toUpperCase(),
-        text + ' 🤔'
+        `"${text}"`,
+        text + ' 👍',
       ];
 
       variations.forEach(v => {
@@ -292,6 +299,8 @@
         btn.onclick = () => {
           textInput.value = v;
           update(ref(database, `sessions/${sessionId}`), { text: v });
+          generateSuggestions(v); // Update suggestions based on the new text
+          textInput.focus();
         };
         suggestionsDiv.appendChild(btn);
       });
