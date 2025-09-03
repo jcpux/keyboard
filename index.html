@@ -169,6 +169,7 @@
             border: 1px solid #333;
             text-align: center;
             width: 100%;
+            position: relative; /* allow absolute children */
         }
         
         #qr-code {
@@ -217,6 +218,18 @@
             margin-top: auto;
             padding-top: 20px;
         }
+        #connection-status {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    text-align: center;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    pointer-events: none; /* so clicks still pass through */
+}
         
         @media (max-width: 768px) {
             .main-container {
@@ -266,19 +279,17 @@
                 </div>
             </div>
             
-            <div class="qr-section" id="qr-section">
-                <div class="qr-container">
-                    <div id="qr-code"></div>
-                    <div class="qr-instructions">
-                        <h3>📱 Scan with your phone</h3>
-                        <p>Use your phone's camera to scan this QR code, then type using your phone's keyboard</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="connection-status-container">
-                <div id="connection-status"></div>
-            </div>
+<div class="qr-section" id="qr-section">
+    <div class="qr-container">
+        <div id="qr-code"></div>
+        <div id="connection-status"></div> <!-- moved inside -->
+        <div class="qr-instructions">
+            <h3>📱 Scan with your phone</h3>
+            <p>Use your phone's camera to scan this QR code, then type using your phone's keyboard</p>
+        </div>
+    </div>
+</div>
+
         </div>
         
         <div class="right-column">
