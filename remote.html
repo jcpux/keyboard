@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Remote Control - Serverless</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ably/1.2.47/ably.min.js"></script>
+    <title>Firebase Remote Control</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -114,8 +113,8 @@
             border: 2px solid #f5c6cb;
         }
         
-        .saas-badge {
-            background: linear-gradient(45deg, #00b894, #00cec9);
+        .firebase-badge {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
             color: white;
             padding: 6px 12px;
             border-radius: 15px;
@@ -140,11 +139,21 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #74b9ff;
+            font-size: 14px;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="saas-badge">🌐 SERVERLESS</div>
+        <div class="firebase-badge">🔥 FIREBASE</div>
         <h1>🎮 Remote Control</h1>
         
         <div id="status" class="status connecting">
@@ -158,11 +167,34 @@
         ></textarea>
         
         <button id="send-button" disabled>🚀 Send Alert</button>
+        
+        <div class="instructions">
+            <strong>📝 How it works:</strong><br>
+            • Type in the text area above<br>
+            • Your keystrokes appear live on the main screen<br>
+            • Press "Send Alert" to trigger an alert on the main screen
+        </div>
     </div>
 
-    <script>
-        // Replace with your Ably API key
-        const ABLY_API_KEY = 'dmBRQA.Khr5OQ:LTW0wFJqdtt_ifc-NfDo1lAIWlB5wgyqB0DjwZjGWXA';
+    <script type="module">
+        // Import Firebase functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, serverTimestamp, update } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+        
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCuPQragYUj2Lf921ZbGpaAq9-yZrszEvQ",
+            authDomain: "keyboard-de3d8.firebaseapp.com",
+            databaseURL: "https://keyboard-de3d8-default-rtdb.firebaseio.com",
+            projectId: "keyboard-de3d8",
+            storageBucket: "keyboard-de3d8.firebasestorage.app",
+            messagingSenderId: "1054359737500",
+            appId: "1:1054359737500:web:0cb3972aa7ee5796cf8959"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
         
         const textInput = document.getElementById('text-input');
         const sendButton = document.getElementById('send-button');
@@ -180,37 +212,53 @@
 
         function connectToSession() {
             try {
-                const ably = new Ably.Realtime(ABLY_API_KEY);
-                const channel = ably.channels.get(sessionId);
+                const sessionRef = ref(database, `sessions/${sessionId}`);
                 
-                ably.connection.on('connected', () => {
-                    showStatus('connected', '✅ Connected to main screen');
-                    textInput.disabled = false;
-                    sendButton.disabled = false;
-                    textInput.focus();
-                    
-                    // Notify main page that remote is connected
-                    channel.publish('remote-connected', {});
-                });
-
-                ably.connection.on('failed', (error) => {
-                    showStatus('error', '❌ Connection failed');
-                    console.error('Ably connection failed:', error);
-                });
+                // Check if session exists and connect
+                onValue(sessionRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        showStatus('connected', '✅ Connected to main screen');
+                        textInput.disabled = false;
+                        sendButton.disabled = false;
+                        textInput.focus();
+                        
+                        // Mark as connected
+                        update(ref(database, `sessions/${sessionId}`), {
+                            connected: true
+                        });
+                        
+                        // Load existing text
+                        const data = snapshot.val();
+                        if (data.text) {
+                            textInput.value = data.text;
+                        }
+                    } else {
+                        showStatus('error', '❌ Session not found');
+                    }
+                }, { onlyOnce: true });
 
                 // Text input with debouncing
                 let debounceTimer;
                 textInput.addEventListener('input', (e) => {
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(() => {
-                        channel.publish('text-update', { text: e.target.value });
+                        update(ref(database, `sessions/${sessionId}`), {
+                            text: e.target.value
+                        });
                     }, 100);
                 });
 
                 // Send button handler
                 sendButton.addEventListener('click', () => {
                     const text = textInput.value.trim();
-                    channel.publish('trigger-alert', { text });
+                    
+                    // Create alert with timestamp
+                    const alertRef = push(ref(database, `sessions/${sessionId}/alerts`));
+                    set(alertRef, {
+                        text: text,
+                        timestamp: serverTimestamp(),
+                        shown: false
+                    });
                     
                     // Visual feedback
                     sendButton.textContent = '✅ Sent!';
@@ -228,9 +276,16 @@
                     }
                 });
 
+                // Disconnect on page unload
+                window.addEventListener('beforeunload', () => {
+                    update(ref(database, `sessions/${sessionId}`), {
+                        connected: false
+                    });
+                });
+
             } catch (error) {
                 showStatus('error', '❌ Failed to initialize');
-                console.error('Initialization error:', error);
+                console.error('Firebase initialization error:', error);
             }
         }
 
