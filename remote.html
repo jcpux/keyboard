@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Remote Input</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remote Text Control</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -12,124 +12,127 @@
       background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
       min-height: 100vh;
       display: flex;
-      justify-content: flex-start;
-      align-items: center;
       flex-direction: column;
+      align-items: center;
     }
 
     .container {
       background: white;
       padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
       width: 100%;
-      max-width: 400px;
+      max-width: 480px;
       display: flex;
       flex-direction: column;
-      align-items: stretch;
       gap: 12px;
     }
 
-    #status {
-      align-self: flex-start;
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #00b894;
-      font-weight: 500;
-    }
-
     #text-input {
-      width: 100%;
-      padding: 12px;
+      flex: 1;
+      padding: 12px 14px;
       border: 2px solid #74b9ff;
       border-radius: 10px;
       font-size: 16px;
-      transition: all 0.3s ease;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+      width: 100%;
     }
 
     #text-input:focus {
       outline: none;
       border-color: #0984e3;
-      box-shadow: 0 0 0 3px rgba(116,185,255,0.2);
+      box-shadow: 0 0 0 3px rgba(116,185,255,0.25);
     }
 
-    .button-row {
+    .controls {
       display: flex;
+      align-items: center;
       gap: 8px;
-      margin-top: 4px;
     }
 
-    .btn {
-      flex: 1;
-      padding: 12px;
+    #clear-button,
+    #send-button {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 14px;
       border-radius: 10px;
+      border: none;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      border: none;
       transition: all 0.2s ease;
+      flex: 1;
+      justify-content: center;
     }
 
-    .btn.alert {
+    #clear-button {
+      background: #f1f2f6;
+      color: #2d3436;
+    }
+    #clear-button:hover {
+      background: #dfe4ea;
+    }
+
+    #send-button {
       background: linear-gradient(45deg, #74b9ff, #0984e3);
       color: white;
     }
-
-    .btn.alert:hover {
-      box-shadow: 0 6px 12px rgba(116,185,255,0.3);
+    #send-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(116,185,255,0.3);
+    }
+    #send-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
-    .btn.clear {
-      background: transparent;
-      border: 1px solid #ccc;
-      color: #555;
+    .status {
+      font-size: 12px;
+      font-weight: 600;
+      color: #2d3436;
+      align-self: flex-start;
+      margin-bottom: 4px;
     }
-
-    .btn.clear:hover {
-      background: #f5f5f5;
+    .status.connected {
+      color: #00b894;
     }
 
     .suggestions {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
+      gap: 8px;
     }
 
-    .suggestion-btn {
-      padding: 6px 12px;
-      border-radius: 20px;
-      border: 1px solid #ccc;
+    .suggestion {
       background: transparent;
-      font-size: 13px;
+      border: 1px dashed #74b9ff;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #0984e3;
       cursor: pointer;
-      color: #555;
+      transition: all 0.2s ease;
     }
-
-    .suggestion-btn:hover {
-      background: #f1f1f1;
+    .suggestion:hover {
+      background: #eaf4ff;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div id="status">Connected</div>
-
+    <div id="status" class="status">connecting…</div>
     <input 
+      type="text"
       id="text-input" 
-      type="text" 
       placeholder="Start typing..."
       disabled
-    />
-
-    <div class="button-row">
-      <button id="send-button" class="btn alert" disabled>🚀 Send Alert</button>
-      <button id="clear-button" class="btn clear">❌ Clear Text</button>
+    >
+    <div class="controls">
+      <button id="clear-button">❌ Clear Text</button>
+      <button id="send-button" disabled>🚀 Send Alert</button>
     </div>
-
     <div class="suggestions" id="suggestions"></div>
   </div>
 
@@ -151,86 +154,113 @@
     const database = getDatabase(app);
 
     const textInput = document.getElementById('text-input');
-    const sendButton = document.getElementById('send-button');
+    const statusDiv = document.getElementById('status');
     const clearButton = document.getElementById('clear-button');
+    const sendButton = document.getElementById('send-button');
     const suggestionsDiv = document.getElementById('suggestions');
 
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session');
 
-    if (sessionId) {
+    if (!sessionId) {
+      setStatus('❌ no session id', false);
+    } else {
       connectToSession();
     }
 
     function connectToSession() {
-      const sessionRef = ref(database, `sessions/${sessionId}`);
+      try {
+        const sessionRef = ref(database, `sessions/${sessionId}`);
 
-      onValue(sessionRef, (snapshot) => {
-        if (snapshot.exists()) {
-          textInput.disabled = false;
-          sendButton.disabled = false;
+        onValue(sessionRef, (snapshot) => {
+          if (snapshot.exists()) {
+            setStatus('connected', true);
+            textInput.disabled = false;
+            sendButton.disabled = false;
+            textInput.focus();
 
-          const data = snapshot.val();
-          if (data.text) textInput.value = data.text;
+            const data = snapshot.val();
+            if (data.text) {
+              textInput.value = data.text;
+            }
+          } else {
+            setStatus('❌ session not found', false);
+          }
+        }, { onlyOnce: true });
 
-          update(sessionRef, { connected: true });
-        }
-      }, { onlyOnce: true });
+        // update Firebase text
+        let debounceTimer;
+        textInput.addEventListener('input', (e) => {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            update(ref(database, `sessions/${sessionId}`), {
+              text: e.target.value
+            });
+          }, 100);
 
-      // Debounced text updates
-      let debounceTimer;
-      textInput.addEventListener('input', (e) => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          update(sessionRef, { text: e.target.value });
-        }, 100);
+          generateSuggestions(e.target.value);
+        });
 
-        generateSuggestions(e.target.value);
-      });
+        clearButton.addEventListener('click', () => {
+          textInput.value = '';
+          update(ref(database, `sessions/${sessionId}`), { text: '' });
+          suggestionsDiv.innerHTML = '';
+        });
 
-      // Send Alert
-      sendButton.addEventListener('click', () => {
-        const text = textInput.value.trim();
-        const alertRef = push(ref(database, `sessions/${sessionId}/alerts`));
-        set(alertRef, { text, timestamp: serverTimestamp(), shown: false });
+        sendButton.addEventListener('click', () => {
+          const text = textInput.value.trim();
+          if (!text) return;
 
-        sendButton.textContent = '✅ Sent!';
-        setTimeout(() => (sendButton.textContent = '🚀 Send Alert'), 1200);
-      });
+          const alertRef = push(ref(database, `sessions/${sessionId}/alerts`));
+          set(alertRef, {
+            text,
+            timestamp: serverTimestamp(),
+            shown: false
+          });
 
-      // Clear Text
-      clearButton.addEventListener('click', () => {
-        textInput.value = '';
-        update(sessionRef, { text: '' });
-        generateSuggestions('');
-      });
+          // feedback
+          sendButton.textContent = '✅ Sent!';
+          sendButton.style.background = 'linear-gradient(45deg,#00b894,#00cec9)';
+          setTimeout(() => {
+            sendButton.textContent = '🚀 Send Alert';
+            sendButton.style.background = 'linear-gradient(45deg,#74b9ff,#0984e3)';
+          }, 1500);
+        });
 
-      window.addEventListener('beforeunload', () => {
-        update(sessionRef, { connected: false });
-      });
+        window.addEventListener('beforeunload', () => {
+          update(ref(database, `sessions/${sessionId}`), { connected: false });
+        });
+      } catch (err) {
+        setStatus('❌ failed to connect', false);
+        console.error(err);
+      }
     }
 
-    // Fake suggestion generator
+    function setStatus(message, ok) {
+      statusDiv.textContent = message;
+      statusDiv.className = ok ? 'status connected' : 'status';
+    }
+
     function generateSuggestions(text) {
       suggestionsDiv.innerHTML = '';
-      if (!text) return;
+      if (!text.trim()) return;
 
-      const base = text.trim().split(' ').pop() || '';
-      const suggestions = [
-        base + 'ing',
-        base + 'ed',
-        base + 's'
+      const variations = [
+        text + '!',
+        text + '?',
+        text + '…',
+        text.toUpperCase(),
+        text + ' 🤔'
       ];
 
-      suggestions.forEach(s => {
+      variations.forEach(v => {
         const btn = document.createElement('button');
-        btn.className = 'suggestion-btn';
-        btn.textContent = s;
-        btn.addEventListener('click', () => {
-          textInput.value += ' ' + s;
-          update(ref(database, `sessions/${sessionId}`), { text: textInput.value });
-          generateSuggestions(textInput.value);
-        });
+        btn.textContent = v;
+        btn.className = 'suggestion';
+        btn.onclick = () => {
+          textInput.value = v;
+          update(ref(database, `sessions/${sessionId}`), { text: v });
+        };
         suggestionsDiv.appendChild(btn);
       });
     }
