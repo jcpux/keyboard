@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Serverless Remote Text - Main Page</title>
+    <title>Firebase Remote Text - Main Page</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ably/1.2.47/ably.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -86,6 +85,12 @@
             border: 2px solid #00b894;
         }
         
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        
         .instructions {
             background: #e3f2fd;
             padding: 20px;
@@ -95,8 +100,8 @@
             text-align: left;
         }
         
-        .saas-badge {
-            background: linear-gradient(45deg, #00b894, #00cec9);
+        .firebase-badge {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
             color: white;
             padding: 8px 16px;
             border-radius: 20px;
@@ -105,15 +110,32 @@
             margin-bottom: 20px;
             display: inline-block;
         }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="saas-badge">🌐 Serverless • No Backend Required</div>
+        <div class="firebase-badge">🔥 Firebase Realtime</div>
         <h1>📱 Remote Text Input</h1>
         
         <div id="qr-container">
-            <div class="status waiting">⏳ Generating secure session...</div>
+            <div class="status waiting">
+                <span class="loading"></span> Initializing session...
+            </div>
             <div id="qr-code"></div>
             <div class="instructions">
                 <strong>📱 How to use:</strong><br>
@@ -131,16 +153,36 @@
         </div>
     </div>
 
-    <script>
-        // Replace with your Ably API key (free tier: 6M messages/month)
-        const ABLY_API_KEY = 'dmBRQA.Khr5OQ:LTW0wFJqdtt_ifc-NfDo1lAIWlB5wgyqB0DjwZjGWXA';
+    <script type="module">
+        // Import Firebase functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+        
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCuPQragYUj2Lf921ZbGpaAq9-yZrszEvQ",
+            authDomain: "keyboard-de3d8.firebaseapp.com",
+            databaseURL: "https://keyboard-de3d8-default-rtdb.firebaseio.com",
+            projectId: "keyboard-de3d8",
+            storageBucket: "keyboard-de3d8.firebasestorage.app",
+            messagingSenderId: "1054359737500",
+            appId: "1:1054359737500:web:0cb3972aa7ee5796cf8959"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
         
         // Generate unique session ID
         const sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+        const sessionRef = ref(database, 'sessions/' + sessionId);
         
-        // Initialize Ably
-        const ably = new Ably.Realtime(ABLY_API_KEY);
-        const channel = ably.channels.get(sessionId);
+        // Initialize session
+        set(sessionRef, {
+            created: serverTimestamp(),
+            connected: false,
+            text: ''
+        });
         
         // Generate QR code
         function generateQRCode() {
@@ -164,37 +206,46 @@
         }
 
         // Listen for remote connection
-        channel.subscribe('remote-connected', () => {
-            document.getElementById('qr-container').style.display = 'none';
-            document.getElementById('text-container').style.display = 'block';
+        onValue(ref(database, `sessions/${sessionId}/connected`), (snapshot) => {
+            if (snapshot.val() === true) {
+                document.getElementById('qr-container').style.display = 'none';
+                document.getElementById('text-container').style.display = 'block';
+            } else if (snapshot.val() === false) {
+                document.getElementById('qr-container').style.display = 'block';
+                document.getElementById('text-container').style.display = 'none';
+            }
         });
 
         // Listen for text updates
-        channel.subscribe('text-update', (message) => {
-            document.getElementById('received-text').value = message.data.text;
+        onValue(ref(database, `sessions/${sessionId}/text`), (snapshot) => {
+            const text = snapshot.val() || '';
+            document.getElementById('received-text').value = text;
         });
 
         // Listen for alert triggers
-        channel.subscribe('trigger-alert', (message) => {
-            alert(message.data.text || 'Button pressed on remote device!');
-        });
-
-        // Listen for disconnection
-        channel.subscribe('remote-disconnected', () => {
-            document.getElementById('qr-container').style.display = 'block';
-            document.getElementById('text-container').style.display = 'none';
+        onValue(ref(database, `sessions/${sessionId}/alerts`), (snapshot) => {
+            const alerts = snapshot.val();
+            if (alerts) {
+                // Get the latest alert
+                const alertKeys = Object.keys(alerts);
+                const latestAlertKey = alertKeys[alertKeys.length - 1];
+                const latestAlert = alerts[latestAlertKey];
+                
+                if (latestAlert && !latestAlert.shown) {
+                    alert(latestAlert.text || 'Button pressed on remote device!');
+                    // Mark alert as shown
+                    set(ref(database, `sessions/${sessionId}/alerts/${latestAlertKey}/shown`), true);
+                }
+            }
         });
 
         // Initialize
-        ably.connection.on('connected', () => {
-            console.log('Connected to Ably');
-            generateQRCode();
-        });
-
-        ably.connection.on('failed', (error) => {
-            console.error('Ably connection failed:', error);
-            document.querySelector('.status.waiting').textContent = '❌ Connection failed';
-        });
+        generateQRCode();
+        
+        // Cleanup session after 1 hour (optional)
+        setTimeout(() => {
+            set(sessionRef, null);
+        }, 60 * 60 * 1000);
     </script>
 </body>
 </html>
